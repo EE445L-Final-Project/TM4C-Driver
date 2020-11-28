@@ -11,14 +11,12 @@ A class to manage modification of the user profile of the current device owner.
 #include <stdint.h>
 
 /** User profile thru a single encounter*/
-typedef struct user_profile 
-{
-	char profile[32];
-	/* Keep for now: may want to divide up contact info more in future iteration */
-//	uint32_t id; // unique ID for each user that is registered on a database
-//	uint8_t month;
-//	uint8_t day;
-} 
-profile_t;
+typedef struct _user_profile{
+	uint8_t name[7];
+	uint8_t startDate[3];
+	uint8_t endDate[3];
+	uint8_t startTime[2];
+	uint8_t endTime[2];
+} user_profile_t;
 
 #endif // USER_H

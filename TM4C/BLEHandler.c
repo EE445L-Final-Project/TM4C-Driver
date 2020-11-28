@@ -33,7 +33,7 @@ static struct sl_bt_evt_scanner_scan_report_s report;
 static const int8_t MIN_RSSI = -60;
 
 #define CONTACT_LIST_SIZE 256
-profile_t Contacts[CONTACT_LIST_SIZE];
+user_profile_t Contacts[CONTACT_LIST_SIZE];
 uint16_t CurContactIdx;
 
 static char message[100];
@@ -55,30 +55,10 @@ void BLEHandler_Main_Loop(void){
 	sl_bt_on_event(&evt);
 }
 
-static void addContact(profile_t newContact) {
-	strcpy(Contacts[CurContactIdx++].profile, newContact.profile);
-	
-	/* Keep for now: may want to divide up contact info more in future iteration */
-//	char cpContact[32];
-//	strcpy(cpContact, newContact);
-//	strtok(cpContact, ":");
-//	Contacts[CurContactIdx].id = (uint32_t)strtol(strtok(cpContact, ":"), NULL, 16);
-//	Contacts[CurContactIdx].month = (uint8_t)strtol(strtok(NULL, ":"), NULL, 10);
-//	Contacts[CurContactIdx].day = (uint8_t)strtol(strtok(NULL, ":"), NULL, 10);
-//	CurContactIdx = (CurContactIdx + 1) % CONTACT_LIST_SIZE; //replace old entries if overflow
-}
-
 //****************************************//
 //        Helper Functions                //
 //****************************************//
 
-typedef struct _user_profile{
-	uint8_t name[7];
-	uint8_t startDate[3];
-	uint8_t endDate[3];
-	uint8_t startTime[2];
-	uint8_t endTime[2];
-} user_profile_t;
 
 const uint8_t PROFILE_SIZE = 10;
 

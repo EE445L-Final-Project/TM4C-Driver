@@ -3,7 +3,7 @@
  * Auto generated Run-Time-Environment Configuration File
  *      *** Do not modify ! ***
  *
- * Project: 'TM4C' 
+ * Project: 'TM4C_drivers' 
  * Target:  'TM4C_drivers' 
  */
 
