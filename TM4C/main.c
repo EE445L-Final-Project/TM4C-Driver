@@ -32,11 +32,11 @@ void FakeMessage() {
 	UART1_OutString(fakeMsg);
 }
 
-extern int time;
-static int second;
-uint8_t month;
-uint8_t day;
-uint8_t year;
+int time = 1513;
+static int second = 38;
+uint8_t month = 11;
+uint8_t day = 28;
+uint8_t year = 20;
 
 void Timer_Task(){
 	if(second == 59){
@@ -116,13 +116,7 @@ int main(void)
 	BLEHandler_Init();
   EnableInterrupts();
 	
-	month = 11;
-	day = 27;
-	year = 20;
-	
-	ST7735_OutString("\nHello WOrld");
 	while (1) {
-		
 		BLEHandler_Main_Loop();
 	}
 }

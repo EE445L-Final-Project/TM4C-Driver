@@ -68,58 +68,21 @@ static void addContact(profile_t newContact) {
 //	CurContactIdx = (CurContactIdx + 1) % CONTACT_LIST_SIZE; //replace old entries if overflow
 }
 
-static void sendContacts() {
-	int i = 0;
-	char contactMsg[32];
-	for (i = 0; i < CurContactIdx; i++) {// fix for wraparound scenario
-			/* Keep for now: may want to divide up contact info more in future iteration */
-//		snprintf(contactMsg, 15, "%x:%d:%d", Contacts[i].id, Contacts[i].month, Contacts[i].day);
-//		UART1_OutString(contactMsg);
-	  int j = 0;
-	  while(Contacts[i].profile[j]) {
-		  contactMsg[j] = Contacts[i].profile[j];
-		  j++;
-	  }
-	  contactMsg[j++] = 0xff;
-	  contactMsg[j] = '\0';
-		UART1_OutString(contactMsg);
-	}
-	CurContactIdx = 0;
-}
-
-void BLESwitch_Advertisement() {
-	char switchMsg[14] = {'A', 'P',  0xff, '\0'}; 
-	UART1_OutString(switchMsg);
-}
-
-//void BLEGet_Input(char *input) {
-//	uint32_t inIdx = 0;
-//	uint8_t inChar = 0;
-//	inChar = UART1_InChar();
-//	while (inChar != 0xff) {
-//		input[inIdx++] =  inChar;
-//		inChar = UART1_InChar();
-//	}
-//	input[inIdx] = 0;
-//	
-//	if (input[0] == 'I' && input[1] == 'D')
-//		addContact(input);
-//	else if (input[0] == 'A' && input[1] == 'P')
-//		sendContacts();
-//}
-
-
 //****************************************//
 //        Helper Functions                //
 //****************************************//
 
 typedef struct _user_profile{
 	uint8_t name[7];
-	uint8_t date[3];
-	uint8_t time[2];
+	uint8_t startDate[3];
+	uint8_t endDate[3];
+	uint8_t startTime[2];
+	uint8_t endTime[2];
 } user_profile_t;
 
-user_profile_t dummy_profile[10] = {
+const uint8_t PROFILE_SIZE = 10;
+
+user_profile_t dummy_profile[PROFILE_SIZE] = {
 {{0x44, 0x65, 0x76, 0x69, 0x63, 0x65, 0x30}, {9,  20, 20}, {12, 20}}, 
 {{0x44, 0x65, 0x76, 0x69, 0x63, 0x65, 0x31}, {10, 20, 20}, {12, 20}}, 
 {{0x44, 0x65, 0x76, 0x69, 0x63, 0x65, 0x32}, {11, 20, 20}, {12, 20}}, 
@@ -132,14 +95,24 @@ user_profile_t dummy_profile[10] = {
 {{0x44, 0x65, 0x76, 0x69, 0x63, 0x65, 0x39}, {6, 20, 20}, {12, 20}}
 };
 
-
-static bool existingContact(char* name){
-	for(int i = 0; i < CONTACT_LIST_SIZE; i++){
-		if(strcmp(name, Contacts[i].profile) == 0){
-			return true;
+static bool existingContact(uint8_t name[], uint8_t* index){
+	bool existingContact;
+	for(int i = 0; i < PROFILE_SIZE; i++){
+		existingContact = true;
+		for(int j = 0; j < 7; j++){
+			if(name[j] != dummy_profile[i].name[j]) existingContact = false;
 		}
+		if(existingContact){ return true; }
 	}
 	return false;
+}
+
+static void addToProfile(user_profile_t profile){
+	int i;
+	for(i = 0; i < 7; i++) dummy_profile[CurContactIdx].name[i] = profile.name[i];
+	for(i = 0; i < 3; i++) dummy_profile[CurContactIdx].startDate[i] = profile.startDate[i];
+	for(i = 0; i < 2; i++) dummy_profile[CurContactIdx].startTime[i] = profile.startTime[i];
+	CurContactIdx = (CurContactIdx + 1) % PROFILE_SIZE;
 }
 
 static bool validBLE(int8_t rssi, uint8_t *data){
@@ -153,13 +126,18 @@ static bool validBLE(int8_t rssi, uint8_t *data){
 			&& data[8] == 0xFF;
 }
 
-static void parseData(uint8_t* name_raw, profile_t* profile){
-	char name[7];
-	sprintf(name, "%c%c%c%c%c%c%c", (char)name_raw[11], (char)name_raw[12], (char)name_raw[13], (char)name_raw[14], (char)name_raw[15], (char)name_raw[16], name_raw[17]);
-	strcpy(profile->profile, name);
-	//profile.profile = "";
-	//profile_t profile;
-	//return profile;
+extern int time;
+extern uint8_t month;
+extern uint8_t day;
+extern uint8_t year;
+
+static void parseData(uint8_t* data, user_profile_t* profile){
+	for(int i = 0; i < 7; i++) profile->name[i] = data[i + 11];
+	profile->startDate[0] = month;
+	profile->startDate[1] = day;
+	profile->startDate[2] = year;
+	profile->startTime[0] = time % 100;
+	profile->startTime[1] = time / 100;
 }
 
 //****************************************//
@@ -308,8 +286,8 @@ static void sl_bt_on_event(sl_bt_msg_t* evt){
 					uint16_t sent_len;
 					uint8_t user_profile[12];
 					memcpy(user_profile, dummy_profile[profile_index].name, 7);
-					memcpy(user_profile + 7, dummy_profile[profile_index].date, 3);
-					memcpy(user_profile + 10, dummy_profile[profile_index].time, 2);
+					memcpy(user_profile + 7, dummy_profile[profile_index].startDate, 3);
+					memcpy(user_profile + 10, dummy_profile[profile_index].startTime, 2);
 					sc = sl_bt_gatt_server_write_attribute_value(gattdb_contact_user, 0, 12, user_profile);
 					if(sc != SL_STATUS_OK){
 						ST7735_OutString("Fail to write user profile\n");	
