@@ -75,23 +75,33 @@ user_profile_t dummy_profile[PROFILE_SIZE] = {
 {{0x44, 0x65, 0x76, 0x69, 0x63, 0x65, 0x39}, {6, 20, 20}, {12, 20}}
 };
 
-static bool existingContact(uint8_t name[], uint8_t* index){
+static bool existingContact(uint8_t* data, uint8_t* index){
 	bool existingContact;
 	for(int i = 0; i < PROFILE_SIZE; i++){
 		existingContact = true;
 		for(int j = 0; j < 7; j++){
-			if(name[j] != dummy_profile[i].name[j]) existingContact = false;
+			if(data[j + 11] != dummy_profile[i].name[j]) existingContact = false;
 		}
-		if(existingContact){ return true; }
+		if(existingContact){ 
+			*index = i;
+			return true; 
+		}
 	}
 	return false;
 }
 
-static void addToProfile(user_profile_t profile){
-	int i;
-	for(i = 0; i < 7; i++) dummy_profile[CurContactIdx].name[i] = profile.name[i];
-	for(i = 0; i < 3; i++) dummy_profile[CurContactIdx].startDate[i] = profile.startDate[i];
-	for(i = 0; i < 2; i++) dummy_profile[CurContactIdx].startTime[i] = profile.startTime[i];
+extern int time;
+extern uint8_t month;
+extern uint8_t day;
+extern uint8_t year;
+
+static void parseAndAdd(uint8_t* data){
+	for(uint8_t i = 0; i < 7; i++) dummy_profile[CurContactIdx].name[i] = data[i + 11];
+	dummy_profile[CurContactIdx].startDate[0] = month;
+	dummy_profile[CurContactIdx].startDate[1] = day;
+	dummy_profile[CurContactIdx].startDate[2] = year;
+	dummy_profile[CurContactIdx].startTime[0] = time % 100;
+	dummy_profile[CurContactIdx].startTime[1] = time / 100;
 	CurContactIdx = (CurContactIdx + 1) % PROFILE_SIZE;
 }
 
@@ -104,20 +114,6 @@ static bool validBLE(int8_t rssi, uint8_t *data){
 			&& data[6] == 0x02 
 			&& data[7] == 0x00 
 			&& data[8] == 0xFF;
-}
-
-extern int time;
-extern uint8_t month;
-extern uint8_t day;
-extern uint8_t year;
-
-static void parseData(uint8_t* data, user_profile_t* profile){
-	for(int i = 0; i < 7; i++) profile->name[i] = data[i + 11];
-	profile->startDate[0] = month;
-	profile->startDate[1] = day;
-	profile->startDate[2] = year;
-	profile->startTime[0] = time % 100;
-	profile->startTime[1] = time / 100;
 }
 
 //****************************************//
@@ -294,9 +290,17 @@ static void sl_bt_on_event(sl_bt_msg_t* evt){
 			}
 			
 			if (validBLE(rssi, value_raw)){
-				profile_t profile;
-				parseData(value_raw, &profile);
-				addContact(profile);
+				uint8_t index;
+				if(existingContact(value_raw, &index)){
+					dummy_profile[index].endDate[0] = month;
+					dummy_profile[index].endDate[1] = day;
+					dummy_profile[index].endDate[2] = year;
+					dummy_profile[index].endTime[0] = time % 100;
+					dummy_profile[index].endTime[1] = time / 100;
+				}
+				else{
+					parseAndAdd(value_raw);
+				}
 			}
 			break;
 		}

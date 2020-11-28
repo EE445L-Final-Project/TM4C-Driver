@@ -11,7 +11,7 @@ The main method for the entire system.
 #include "../inc/CortexM.h"
 #include "Switch.h"
 #include "BLEHandler.h"
-#include "AppHandler.h"
+//#include "AppHandler.h"
 #include "Display.h"
 #include "../inc/UART1int.h"
 #include "./BGLib/sl_bt_api.h"
