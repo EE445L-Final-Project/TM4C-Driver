@@ -10,6 +10,9 @@ thus a lot of power).
 #ifndef DISPLAY_INTERFACE_H
 #define DISPLAY_INTERFACE_H
 
+#include <stdint.h>
+#include "../inc/user.h"
+
 /** Initialize Port A for the display. */
 void Display_Init(void);
 
@@ -20,5 +23,9 @@ void DisplaySend_String(char*);
 
 /** Display the number of the display. */
 void DisplaySend_Integer(int);
+
+void Display_Time(int time, uint8_t month, uint8_t day, uint8_t year);
+
+void Display_NewProfile(user_profile_t *user);
 
 #endif // DISPLAY_INTERFACE_H

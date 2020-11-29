@@ -99,6 +99,7 @@ void Timer_Task(){
 		else{
 			time += 1;
 		}
+		Display_Time(time, month, day, year);
 	}
 	else{
 		second += 1;
@@ -115,6 +116,7 @@ int main(void)
 	Timer0A_Init1HzInt(&Timer_Task);
 	BLEHandler_Init();
   EnableInterrupts();
+
 	
 	while (1) {
 		BLEHandler_Main_Loop();

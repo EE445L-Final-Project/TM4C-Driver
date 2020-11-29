@@ -16,11 +16,14 @@ BLE handler
 #include "./BGLib/sl_bt_api.h"
 #include "./BGLib/sl_bt_ncp_host.h"
 #include "../inc/ST7735.h"
+#include "Display.h"
 
-#define gattdb_device_name 11
-#define gattdb_fake_device_name 31
-#define gattdb_data_ready 27
-#define gattdb_contact_user 21
+#define gattdb_device_name 				11
+#define gattdb_fake_device_name 	31
+#define gattdb_data_ready 				27
+#define gattdb_contact_user 			21
+#define gattdb_date 							29
+#define gattbd_time								31
 
 
 SL_BT_API_DEFINE();
@@ -82,7 +85,7 @@ static bool existingContact(uint8_t* data, uint8_t* index){
 	for(int i = 0; i < PROFILE_SIZE; i++){
 		existingContact = true;
 		for(int j = 0; j < 7; j++){
-			if(data[j + 11] != dummy_profile[i].name[j]) existingContact = false;
+			if(data[j + 11] != Contacts[i].name[j]) existingContact = false;
 		}
 		if(existingContact){ 
 			*index = i;
@@ -97,13 +100,15 @@ extern uint8_t month;
 extern uint8_t day;
 extern uint8_t year;
 
-static void parseAndAdd(uint8_t* data){
-	for(uint8_t i = 0; i < 7; i++) dummy_profile[CurContactIdx].name[i] = data[i + 11];
+static void parseAndAdd(uint8_t* data, uint8_t len){
+	for(uint8_t i = 0; i < len - 11; i++) Contacts[CurContactIdx].name[i] = data[i + 11];
+	Contacts[CurContactIdx].name[len - 11] = 0;
 	Contacts[CurContactIdx].startDate[0] = month;
 	Contacts[CurContactIdx].startDate[1] = day;
 	Contacts[CurContactIdx].startDate[2] = year;
 	Contacts[CurContactIdx].startTime[0] = time % 100;
 	Contacts[CurContactIdx].startTime[1] = time / 100;
+	Display_NewProfile(&Contacts[CurContactIdx]);
 	CurContactIdx = (CurContactIdx + 1) % PROFILE_SIZE;
 }
 
@@ -205,7 +210,9 @@ static void sl_bt_on_event(sl_bt_msg_t* evt){
 					
 			ST7735_OutString("BLE Successfully inisialized...\n");
 			//for(int i = 0; i < 99999999; i++);
-			//ST7735_FillScreen(ST7735_BLACK);	
+			ST7735_FillScreen(ST7735_BLACK);	
+			Display_Time(time, month, day, year);
+			ST7735_SetCursor(0, 1);
 			
 			// Start scanning
 			sc = sl_bt_scanner_start(1, 1);
@@ -298,14 +305,14 @@ static void sl_bt_on_event(sl_bt_msg_t* evt){
 			if (validBLE(rssi, value_raw)){
 				uint8_t index;
 				if(existingContact(value_raw, &index)){
-					dummy_profile[index].endDate[0] = month;
-					dummy_profile[index].endDate[1] = day;
-					dummy_profile[index].endDate[2] = year;
-					dummy_profile[index].endTime[0] = time % 100;
-					dummy_profile[index].endTime[1] = time / 100;
+					Contacts[index].endDate[0] = month;
+					Contacts[index].endDate[1] = day;
+					Contacts[index].endDate[2] = year;
+					Contacts[index].endTime[0] = time % 100;
+					Contacts[index].endTime[1] = time / 100;
 				}
 				else{
-					parseAndAdd(value_raw);
+					parseAndAdd(value_raw, len);
 				}
 			}
 			break;
