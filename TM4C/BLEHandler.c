@@ -19,11 +19,11 @@ BLE handler
 #include "Display.h"
 
 #define gattdb_device_name 				11
-#define gattdb_fake_device_name 	31
-#define gattdb_data_ready 				27
 #define gattdb_contact_user 			21
+#define gattdb_data_ready 				23
+#define gattdb_fake_device_name 	27
 #define gattdb_date 							29
-#define gattbd_time								31
+#define gattdb_time								31
 
 
 SL_BT_API_DEFINE();
@@ -44,7 +44,7 @@ static char message[100];
 const char default_device_name[] = "Device1";
 
 void BLEHandler_Init(void) {
-	SL_BT_API_INITIALIZE(uart_tx_wrapper, uartRx);
+	SL_BT_API_INITIALIZE_NONBLOCK(uart_tx_wrapper, uartRx, uartRxPeek);
 	UART1_Init();
 	ST7735_OutString("EE445L Final\nInitializing BLE...");
 	CurContactIdx = 0;
@@ -224,6 +224,10 @@ static void sl_bt_on_event(sl_bt_msg_t* evt){
 		}
 		case sl_bt_evt_connection_opened_id:{
 			ST7735_OutString("New Connection Opened\n");
+			sc = sl_bt_scanner_stop();
+			if(sc != SL_STATUS_OK){
+				ST7735_OutString("Failed to stop scanning\n");
+			}
 			profile_index = 0;
 			break;
 		}
@@ -237,6 +241,10 @@ static void sl_bt_on_event(sl_bt_msg_t* evt){
 			if (sc != SL_STATUS_OK){
 				ST7735_OutString("Failed to start advertising\n");
 				break;
+			}
+			sc = sl_bt_scanner_start(1, 1);
+			if(sc != SL_STATUS_OK){
+				ST7735_OutString("Failed to start scanning\n");
 			}
 			break;
 		}
@@ -286,6 +294,32 @@ static void sl_bt_on_event(sl_bt_msg_t* evt){
 					if(sc != SL_STATUS_OK){
 						ST7735_OutString("Fail to write user profile\n");	
 					}
+				}
+				case gattdb_date:{
+					size_t value_len;
+					uint8_t value[3];
+					sc = sl_bt_gatt_server_read_attribute_value(gattdb_date, 0, 3, &value_len, value);
+					if(sc != SL_STATUS_OK){
+						ST7735_OutString("Failed to get date information\n");
+						break;
+					}
+					month = value[0];
+					day = value[1];
+					year = value[2];
+					Display_Time(time, month, day, year);				
+					break;
+				}
+				case gattdb_time:{
+					size_t value_len;
+					uint8_t value[2];
+					sc = sl_bt_gatt_server_read_attribute_value(gattdb_time, 0, 2, &value_len, value);
+					if(sc != SL_STATUS_OK){
+						ST7735_OutString("Failed to get time information\n");
+						break;
+					}
+					time = value[1] * 100 + value[0];
+					Display_Time(time, month, day, year);
+					break;
 				}
 				default:
 					break;			
