@@ -38,6 +38,8 @@ uint16_t CurContactIdx;
 
 static char message[100];
 
+const char default_device_name[] = "Device1";
+
 void BLEHandler_Init(void) {
 	SL_BT_API_INITIALIZE(uart_tx_wrapper, uartRx);
 	UART1_Init();
@@ -97,11 +99,11 @@ extern uint8_t year;
 
 static void parseAndAdd(uint8_t* data){
 	for(uint8_t i = 0; i < 7; i++) dummy_profile[CurContactIdx].name[i] = data[i + 11];
-	dummy_profile[CurContactIdx].startDate[0] = month;
-	dummy_profile[CurContactIdx].startDate[1] = day;
-	dummy_profile[CurContactIdx].startDate[2] = year;
-	dummy_profile[CurContactIdx].startTime[0] = time % 100;
-	dummy_profile[CurContactIdx].startTime[1] = time / 100;
+	Contacts[CurContactIdx].startDate[0] = month;
+	Contacts[CurContactIdx].startDate[1] = day;
+	Contacts[CurContactIdx].startDate[2] = year;
+	Contacts[CurContactIdx].startTime[0] = time % 100;
+	Contacts[CurContactIdx].startTime[1] = time / 100;
 	CurContactIdx = (CurContactIdx + 1) % PROFILE_SIZE;
 }
 
@@ -155,11 +157,14 @@ static void sl_bt_on_event(sl_bt_msg_t* evt){
 			ST7735_OutString(message);
 			
 
-			uint8_t device_name[] = {0x44, 0x65, 0x76, 0x69, 0x63, 0x65};
-			sc = sl_bt_gatt_server_write_attribute_value(gattdb_device_name, 0, 6 , device_name);
+			sc = sl_bt_gatt_server_write_attribute_value(gattdb_device_name, 0, strlen(default_device_name) , default_device_name);
 			if(sc != SL_STATUS_OK){
 				ST7735_OutString("Failed to set attribute\n");
 			}
+			
+			adv_data_len = 11 + strlen(default_device_name);
+			adv_data[9] = strlen(default_device_name) + 1;
+			memcpy(adv_data + 11, default_device_name, strlen(default_device_name));
 				
 			// Create an advertising set.
       sc = sl_bt_advertiser_create_set(&advertising_set_handle);
@@ -255,7 +260,7 @@ static void sl_bt_on_event(sl_bt_msg_t* evt){
 					break;
 				}
 				case gattdb_data_ready: {
-					if(profile_index == 10){
+					if(profile_index == CurContactIdx){
 						return;
 					}
 					uint8_t ready = 1;
@@ -269,6 +274,7 @@ static void sl_bt_on_event(sl_bt_msg_t* evt){
 						ST7735_OutString("Fail to write user profile\n");	
 					}			
 					profile_index ++;
+					
 					sc = sl_bt_gatt_server_send_characteristic_notification(0xff, gattdb_data_ready, 1, &ready, &sent_len);
 					if(sc != SL_STATUS_OK){
 						ST7735_OutString("Fail to write user profile\n");	

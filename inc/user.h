@@ -12,7 +12,7 @@ A class to manage modification of the user profile of the current device owner.
 
 /** User profile thru a single encounter*/
 typedef struct _user_profile{
-	uint8_t name[7];
+	uint8_t name[15];
 	uint8_t startDate[3];
 	uint8_t endDate[3];
 	uint8_t startTime[2];
