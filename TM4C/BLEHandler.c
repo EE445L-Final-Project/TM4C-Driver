@@ -41,7 +41,7 @@ uint16_t CurContactIdx;
 
 static char message[100];
 
-const char default_device_name[] = "Device1";
+const char default_device_name[] = "Device2";
 
 void BLEHandler_Init(void) {
 	SL_BT_API_INITIALIZE_NONBLOCK(uart_tx_wrapper, uartRx, uartRxPeek);
@@ -278,13 +278,14 @@ static void sl_bt_on_event(sl_bt_msg_t* evt){
 					if(profile_index == CurContactIdx){
 						return;
 					}
+					size_t name_len = strlen(Contacts[profile_index].name);
 					uint8_t ready = 1;
 					uint16_t sent_len;
-					uint8_t user_profile[12];
-					memcpy(user_profile, dummy_profile[profile_index].name, 7);
-					memcpy(user_profile + 7, dummy_profile[profile_index].startDate, 3);
-					memcpy(user_profile + 10, dummy_profile[profile_index].startTime, 2);
-					sc = sl_bt_gatt_server_write_attribute_value(gattdb_contact_user, 0, 12, user_profile);
+					uint8_t user_profile[20];
+					memcpy(user_profile, Contacts[profile_index].name, name_len);
+					memcpy(user_profile + name_len, Contacts[profile_index].startDate, 3);
+					memcpy(user_profile + name_len + 3, Contacts[profile_index].startTime, 2);
+					sc = sl_bt_gatt_server_write_attribute_value(gattdb_contact_user, 0, name_len + 5, user_profile);
 					if(sc != SL_STATUS_OK){
 						ST7735_OutString("Fail to write user profile\n");	
 					}			
