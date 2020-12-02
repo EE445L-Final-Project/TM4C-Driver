@@ -33,7 +33,7 @@ static int32_t uartRx(uint32_t len, uint8_t* data);
 static int32_t uartRxPeek(void);
 
 static struct sl_bt_evt_scanner_scan_report_s report;
-static const int8_t MIN_RSSI = -60;
+static const int8_t MIN_RSSI = -45;
 
 #define CONTACT_LIST_SIZE 256
 user_profile_t Contacts[CONTACT_LIST_SIZE];
@@ -41,7 +41,7 @@ uint16_t CurContactIdx;
 
 static char message[100];
 
-const char default_device_name[] = "Device2";
+const char default_device_name[] = "D1";
 
 void BLEHandler_Init(void) {
 	SL_BT_API_INITIALIZE_NONBLOCK(uart_tx_wrapper, uartRx, uartRxPeek);
@@ -80,11 +80,11 @@ user_profile_t dummy_profile[PROFILE_SIZE] = {
 {{0x44, 0x65, 0x76, 0x69, 0x63, 0x65, 0x39}, {6, 20, 20}, {12, 20}}
 };
 
-static bool existingContact(uint8_t* data, uint8_t* index){
+static bool existingContact(uint8_t* data, uint8_t data_len, uint8_t* index){
 	bool existingContact;
 	for(int i = 0; i < PROFILE_SIZE; i++){
 		existingContact = true;
-		for(int j = 0; j < 7; j++){
+		for(int j = 0; j < data_len - 11; j++){
 			if(data[j + 11] != Contacts[i].name[j]) existingContact = false;
 		}
 		if(existingContact){ 
@@ -212,7 +212,9 @@ static void sl_bt_on_event(sl_bt_msg_t* evt){
 			//for(int i = 0; i < 99999999; i++);
 			ST7735_FillScreen(ST7735_BLACK);	
 			Display_Time(time, month, day, year);
-			ST7735_SetCursor(0, 1);
+			Display_DeviceName(default_device_name, strlen(default_device_name));
+			Display_ToggleConnection(0);
+			Display_ProfileHeader();
 			
 			// Start scanning
 			sc = sl_bt_scanner_start(1, 1);
@@ -223,16 +225,17 @@ static void sl_bt_on_event(sl_bt_msg_t* evt){
 			break;
 		}
 		case sl_bt_evt_connection_opened_id:{
-			ST7735_OutString("New Connection Opened\n");
+			// ST7735_OutString("New Connection Opened\n");
 			sc = sl_bt_scanner_stop();
 			if(sc != SL_STATUS_OK){
 				ST7735_OutString("Failed to stop scanning\n");
 			}
+			Display_ToggleConnection(1);
 			profile_index = 0;
 			break;
 		}
 		case sl_bt_evt_connection_closed_id:{
-			ST7735_OutString("Connection Closed\n");
+			// ST7735_OutString("Connection Closed\n");
       // Start general advertising and enable connections.
       sc = sl_bt_advertiser_start(
         advertising_set_handle,
@@ -246,13 +249,14 @@ static void sl_bt_on_event(sl_bt_msg_t* evt){
 			if(sc != SL_STATUS_OK){
 				ST7735_OutString("Failed to start scanning\n");
 			}
+			Display_ToggleConnection(0);
 			break;
 		}
 		
 		case sl_bt_evt_gatt_server_attribute_value_id:{
 			switch (evt->data.evt_gatt_server_attribute_value.attribute){
 				case gattdb_fake_device_name: {
-					ST7735_OutString("Device Name Changed\n");
+					// ST7735_OutString("Device Name Changed\n");
 					size_t value_len;
 					const size_t max_length = 15;
 					uint8_t value[16];
@@ -271,7 +275,8 @@ static void sl_bt_on_event(sl_bt_msg_t* evt){
 					if (sc != SL_STATUS_OK){
 						ST7735_OutString("Failed to set advertising data\n");
 						break;
-					}				
+					}
+					Display_DeviceName(value, value_len);
 					break;
 				}
 				case gattdb_data_ready: {
@@ -295,6 +300,7 @@ static void sl_bt_on_event(sl_bt_msg_t* evt){
 					if(sc != SL_STATUS_OK){
 						ST7735_OutString("Fail to write user profile\n");	
 					}
+					break;
 				}
 				case gattdb_date:{
 					size_t value_len;
@@ -339,7 +345,7 @@ static void sl_bt_on_event(sl_bt_msg_t* evt){
 			
 			if (validBLE(rssi, value_raw)){
 				uint8_t index;
-				if(existingContact(value_raw, &index)){
+				if(existingContact(value_raw, len, &index)){
 					Contacts[index].endDate[0] = month;
 					Contacts[index].endDate[1] = day;
 					Contacts[index].endDate[2] = year;

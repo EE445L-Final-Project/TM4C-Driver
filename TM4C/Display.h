@@ -17,15 +17,14 @@ thus a lot of power).
 void Display_Init(void);
 
 // Send data ============================================
-
-/** Send a string to display. */
-void DisplaySend_String(char*);
-
-/** Display the number of the display. */
-void DisplaySend_Integer(int);
-
 void Display_Time(int time, uint8_t month, uint8_t day, uint8_t year);
 
 void Display_NewProfile(user_profile_t *user);
+
+void Display_DeviceName(uint8_t* name, uint8_t len);
+
+void Display_ToggleConnection(uint8_t state);
+
+void Display_ProfileHeader(void);
 
 #endif // DISPLAY_INTERFACE_H
